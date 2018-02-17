@@ -53,7 +53,7 @@ for ($v=0;$v<4;$v++){
 
 		// if the cell is not busy, it can be a new slice
 		// cycle to increase the slice
-		for($k=$h;($k>0 && $pizza[$x][$y]!="0");$k--){
+		for($k=$h;($k>0 && $pizza[$x][$y]!="-");$k--){
 			// defining the dimension of the slice to consider the biggest possible:
 			// when $k=1 ==> the slice is horizontal
 			// whne $k > $h/2 ==> the slice is vertical
@@ -69,7 +69,7 @@ for ($v=0;$v<4;$v++){
 				for($s_y=0;$s_y<$shift_y;$s_y++){
 					if ($pizza[$x+$s_x][$y+$s_y]=="M")$m++;
 					if ($pizza[$x+$s_x][$y+$s_y]=="T")$t++;
-					if ($pizza[$x+$s_x][$y+$s_y]=="0")$busy++;
+					if ($pizza[$x+$s_x][$y+$s_y]=="-")$busy++;
 				}
 			}
 
@@ -80,11 +80,11 @@ for ($v=0;$v<4;$v++){
 				$fetta[$fette]=$y." ".$x." ".($y+$shift_y-1)." ".($x+$shift_x-1)."\n";
 				$fette++;
 
-				// Mark the cells of the valid pizza slice as busy "0"
+				// Mark the cells of the valid pizza slice as busy "-"
 				for($s_x=0;$s_x<$shift_x;$s_x++){
 					for($s_y=0;$s_y<$shift_y;$s_y++){
-						$pizza[$x+$s_x][$y+$s_y]="0";
-						$pizza[$x+$s_x][$y+$s_y]="0";
+						$pizza[$x+$s_x][$y+$s_y]="-";
+						$pizza[$x+$s_x][$y+$s_y]="-";
 					}
 				}
 				//$cell=$cell+$shift_x+1;
@@ -96,6 +96,14 @@ for ($v=0;$v<4;$v++){
 		}
 	}
 
+	$fo=fopen("pizza2018/".$nome[$v].".matrix","w");
+	for ($y=0;$y<$r;$y++){
+		for ($x=0;$x<$c;$x++){
+			fwrite($fo, $pizza[$x][$y]);
+		}
+		fwrite($fo, "\n");
+	}
+	fclose($fo);
 
 	$fo=fopen("pizza2018/".$nome[$v].".out","w");
 	fwrite($fo,$fette."\n");

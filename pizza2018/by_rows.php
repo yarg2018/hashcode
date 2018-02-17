@@ -96,6 +96,14 @@ for ($v=0;$v<4;$v++){
 		}
 	}
 
+	$fo=fopen("pizza2018/".$nome[$v].".matrix","w");
+	for ($y=0;$y<$r;$y++){
+		for ($x=0;$x<$c;$x++){
+			fwrite($fo, $pizza[$x][$y]);
+		}
+		fwrite($fo, "\n");
+	}
+	fclose($fo);
 
 	$fo=fopen("pizza2018/".$nome[$v].".out","w");
 	fwrite($fo,$fette."\n");
