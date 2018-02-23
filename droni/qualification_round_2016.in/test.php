@@ -1,5 +1,7 @@
 #!/usr/bin/php
 <?php
+include "utility.php";
+
  $file=str_replace(array("\n","\r"),"",file("test.in"));
  $dati=explode(" ",$file[0]);
 $row=$dati[0];
@@ -24,7 +26,10 @@ for($i=0; $i<$n_orders;$i++){
 }
 
 for ($w=0;$w<$warehouses;$w++){
-
+	for($o=0; $o<$n_orders; $o++){
+		$cur_distanza=distanza($wa[$w][0],$wa[$w][1],$orders_delivery[$o][0],$orders_delivery[$o][1]);
+		if ($cur_distanza<$min_distanza)$min_distanza=$cur_distanza;
+	}
 }
 
 
