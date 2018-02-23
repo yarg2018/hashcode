@@ -25,13 +25,19 @@ for($i=0; $i<$n_orders;$i++){
 	$order_items[$i]=explode(" ",$file[$n++]);
 }
 
+$min_distanza=$max_turns;
 for ($w=0;$w<$warehouses;$w++){
 	for($o=0; $o<$n_orders; $o++){
 		$cur_distanza=distanza($wa[$w][0],$wa[$w][1],$orders_delivery[$o][0],$orders_delivery[$o][1]);
-		if ($cur_distanza<$min_distanza)$min_distanza=$cur_distanza;
+		if ($cur_distanza<$min_distanza){
+			$min_distanza=$cur_distanza;
+			$min_warehouse=$w;
+			$min_orders=$o;
+		}
 	}
 }
 
+echo "mindistanza $min_distanza $min_warehouse $min_orders " ."\n";
 
 
 
