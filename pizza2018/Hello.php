@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 $nome[0]="example";
 $nome[1]="small";
