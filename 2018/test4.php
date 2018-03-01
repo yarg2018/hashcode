@@ -107,8 +107,6 @@ while(array_search(min($auto_available), $auto_available)<$steps && count($corse
 			array_push($out[$v], $corse[$chiave]['id']);
 
 			unset($corse[$chiave]);
-		}else{
-			$auto_available[$v]=$steps+1;
 		}
 }
 //}
