@@ -56,16 +56,25 @@ foreach($input_files as $input_file)
     
     print("== start simulation\n");
 
+    $macchine = array();
+    
     foreach($corse as $corsa)
     {
-        for($v=0;$v<$vehicles;$v++)
+        if($v<$vehicles)
         {
-            print("M$v Numero Corse assegnate 1  ID CORSA: " . $corse[$v]['id'] ."\n");
-            
-            file_put_contents($input_file . ".out", "1 " . $corse[$v]['id'] . "\n", FILE_APPEND);
+            $macchine[$v][] = $corsa['id'];
+            $v++;
+        }
+        else
+        {
+            $v=0;
         }
     }
     
+    foreach($macchine as $macchina)
+    {
+        file_put_contents($input_file . ".out", count($macchina) . " " . implode($macchina, " ") . "\n", FILE_APPEND);
+    }
     print("== fine $input_file\n");
 }
 
