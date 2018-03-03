@@ -1,7 +1,9 @@
 <?php
-require_once("2018/utility.php");
+error_reporting(E_ERROR | E_PARSE);
+unlink("*.out");
+require_once("utility.php");
 
-$input_files = array('2018/a_example','2018/b_should_be_easy','2018/c_no_hurry','2018/d_metropolis','2018/e_high_bonus');
+$input_files = array('a_example','b_should_be_easy','c_no_hurry','d_metropolis','e_high_bonus');
 
 
 foreach($input_files as $input_file)
@@ -24,7 +26,7 @@ foreach($input_files as $input_file)
 
     for ($i=0; $i< $rides; $i++){
         list($ride['a'][$i],$ride['b'][$i],$ride['x'][$i],$ride['y'][$i],$ride['s'][$i],$ride['f'][$i]) = explode(" ",$file[$n++]);
-        $ride['distance'][$i] = distanza($ride['a'][$i],$ride['b'][$i],$ride['x'][$i],$ride['y'][$i]);
+        $ride['distance'][$i] =@distanza(intval($ride['a'][$i]),intval($ride['b'][$i]),intval($ride['x'][$i]),intval($ride['y'][$i]));
         $ride['id'][$i] = $i;
     }
 
@@ -66,21 +68,22 @@ for($v=0; $v<$vehicles; $v++){
 }
 
 
-while(array_search(min($auto_available), $auto_available)<$steps && count($corse)>0){
+while(min($auto_available, $auto_available)<$steps && count($corse)>0){
 	$time_to_start=0;
 	$time_corsa=0;
 
-	$delta=floor($steps*0.01);
+	$delta=floor($steps * 0,01);
 	$best_attesa=$steps+$rows+$columns;
 	//foreach($corse as $c_key => $c){
 	$v=array_search(min($auto_available), $auto_available);
 	#print_r($corse);
 	#print_r($auto_x);
+
 	foreach(array_keys($corse) as $c_key){
 			#print($v." ".$c_key."\n");
 			$c = $corse[$c_key];
 			#print_r($c);
-			$time_to_start=$auto_available[$v]+distanza($auto_x[$v], $auto_y[$v],$c['a'],$c['b']);
+			$time_to_start=@$auto_available[$v]+distanza(@$auto_x[$v], @$auto_y[$v],$c['a'],$c['b']);
 			$turni_attesa = $c['s']-$time_to_start;
 			if($turni_attesa==0){
 				$best_id=$c['id'];
@@ -98,7 +101,7 @@ while(array_search(min($auto_available), $auto_available)<$steps && count($corse
 
 		}
 
-		$time_to_start=($auto_available[$v] + distanza($auto_x[$v], $auto_y[$v],$corse[$chiave]['a'],$corse[$chiave]['b']));
+		$time_to_start=(@$auto_available[$v] + distanza(@$auto_x[$v], @$auto_y[$v],$corse[$chiave]['a'],$corse[$chiave]['b']));
 		$time_corsa = max($time_to_start, $corse[$chiave]['s'])+distanza($corse[$chiave]['a'],$corse[$chiave]['b'],$corse[$chiave]['x'],$corse[$chiave]['y']);
 		if($time_corsa<$steps){
 			$auto_x=$corse[$chiave]['x'];
