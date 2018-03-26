@@ -71,7 +71,7 @@ for($v=0; $v<$vehicles; $v++){
 
 $time_to_start=0;
 $time_corsa=array();
-$best_attesa=20*($steps+$rows+$columns);
+$best_attesa=9999*($steps+$rows+$columns);
 $hashcode_score[$input_file]=0;
 $counter=0;
 while(min($auto_available)<$steps && count($corse)>0){
@@ -88,10 +88,10 @@ while(min($auto_available)<$steps && count($corse)>0){
       $dist=distanza($auto_x[$v], $auto_y[$v],$c['a'],$c['b']);
 			$time_to_start=$auto_available[$v]+$dist;
       $time_corsa[$c_key] = max($time_to_start, $c['s'])+$c['distance'];
-      if($time_corsa[$c_key]>$c['f']){
+      if($time_corsa[$c_key]>=$c['f']){
         $score[$c_key] = -$best_attesa;
       }else{
-        $score[$c_key] = $c['distance']-$dist;//-3*max($c['s']-$time_to_start,0);
+        $score[$c_key] = $c['distance']-50*$dist-100*($c['f']-$time_corsa[$c_key])-25*max($c['s']-$time_to_start,0);
       }
 		}
   $chiave=array_search(max($score),$score);
