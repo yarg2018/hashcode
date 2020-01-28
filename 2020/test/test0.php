@@ -1,10 +1,10 @@
 <?php
 //test0
-$fname[0]="a_examples";
+$fname[0]="a_example";
 $fname[1]="b_small";
 $fname[2]="c_medium";
-$fname[3]="d_quite";
-$fname[4]="e_also";
+$fname[3]="d_quite_big";
+$fname[4]="e_also_big";
 
 foreach($fname as $fn){
 	$f=file($fn.".in");
