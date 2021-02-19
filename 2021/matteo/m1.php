@@ -141,7 +141,7 @@
 	
 	function main()
 	{
-		file_summary("a_example");
+		file_summary("e_many_teams.in");
 	}
 	
 	main();
