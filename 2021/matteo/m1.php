@@ -8,12 +8,61 @@
 	  * (C) 2021 by Roberto <>
 	  */
 	  
-	function create_mono_array($content, $delimiter, $bRE = false)
+	function create_mono_array($content, $delimiter, $bRE = false, $names = array())
 	{
+		$result = null;
+		$phFound = false;
+		
 		if($bRE)
-			return preg_split(@"/$delimiter/", $content);
+			$result = preg_split(@"/$delimiter/", $content);
 		else
-			return explode($delimiter, $content);
+			$result = explode($delimiter, $content);
+			
+		if(count($names)>0)
+		{
+			$counter = 0;
+			$assarray = array();
+		
+			// the names array could contain special placeholder like @
+			// PAY ATTENTION -- POOR PROGRAMMING PRACTICE: if a placeholder like this is specified, the other elements in increasing index order will be ignored
+			foreach($names as $n)
+			{
+				if(strcmp(trim($n),"")==0)
+					die("Invalid name-array passed to create_mono_array\n");
+				// but if a placeholder has been found then the check is no longer required
+				if(preg_match('/\@/',$n))
+				{
+					// force exit and rebuild the name array accordingly
+					$phFound = true;
+					break;
+				}
+			}
+			if($phFound)
+			{
+				$phString = "";
+				$phCounter = 0;
+				for($nc = 0; $nc <count($names); $nc++)
+				{
+					if(preg_match('/\@/',$names[$nc]))
+					{
+						$phString = $names[$nc];
+						array_slice($names,0,$nc-1);
+						for($j = $nc; $j<count($result); $j++)
+						{
+							$names[$j] = preg_replace('/\@/', $phCounter, $phString);
+							$phCounter++;
+						}
+						break;
+					}
+				}
+			}
+			for($i=0; $i<count($result); $i++)
+			{
+				$assarray[$names[$i]] = $result[$i];
+			}
+			$result = $assarray;
+		}
+		return $result;
 	}
 	
 	/*
@@ -28,6 +77,7 @@
 									'skip' => integer|null,		// number of elements to skip forward or null if nothing must be skipped
 									'rskip' => integer|null,		// number of elements to skip backward or null if nothing must be skipped
 									'parent' => 0|null,				// the element that will become the parent or null for automatic - long
+									'prefix' => string|null      // default to null, if parent null, autokey generation is ON and you could specify a prefix
 									'children' => array()|null,	// an array specifing the position of the children on the same line of the parent [???]
 								),
 								'value' => array(
@@ -37,6 +87,8 @@
 									'rskip' => integer|null,		// number of elements to skip backward or null if nothing must be skipped
 									'parent' => 0,				// the element that will become the parent
 									'children' => array()|null,	// an array specifing the position of the children on the same line of the parent [???]
+									'names' => array()|null     // respecting the position, you could name each elements to have an associative array (like a object) instead of a simple array
+																// if one of the names contains @ an increasing integer/long will replace it
 								),
 							);
 	 */
@@ -50,9 +102,16 @@
 		$_key = 0;
 		foreach($basearray as $ba)
 		{
-			$debug++;
-			$mono = create_mono_array($ba, $struct_def['key']['delimiter'], $struct_def['key']['bRE']);
+			if(isset($debug))
+				$debug++;
+			$mono = create_mono_array(
+						$ba,
+						$struct_def['key']['delimiter'],
+						$struct_def['key']['bRE'],
+						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array()
+					);
 			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
+			$key = isset($struct_def['key']['prefix']) ? $struct_def['key']['prefix'] . $key : $key;
 			if(!in_array($key, array_keys($result)))
 			{
 				$result[$key] = ($autokey) ? $mono : array_splice($mono, $struct_def['key']['parent']+1);
@@ -130,10 +189,12 @@
 											'delimiter' => '\s',
 											'bRE' => true,
 											'parent' => null, //definisco la chiave automaticamente (progressivo, long)
+											//'prefix' => "pizza"
 										),
 										'value' => array(
 											'delimiter' => '\s',
 											'bRE' => true,
+											//'names' => array('n_ingredienti', 'ingredient@'),
 										),
 									))
 									);
@@ -142,6 +203,7 @@
 	function main()
 	{
 		file_summary("e_many_teams.in");
+		# file_summary("a_example");
 	}
 	
 	main();
