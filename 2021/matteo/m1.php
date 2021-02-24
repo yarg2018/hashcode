@@ -16,24 +16,43 @@
 		list($usec, $sec) = explode(" ", microtime());
 		return ((float)$usec + (float)$sec);
 	}	 
-	 
-	 
+	/**
+	  * @method sort_mono_array
+	  * @return boolean , true if success, false if something failed
+	  * @param myarray array() to sort
+	  * @param order string, ASC or DESC
+	  */
+	function sort_mono_array(&$myarray, $order)
+	{
+		return uasort($myarray, function ($a, $b) use ($order) {
+				if(is_string($a))
+					$cmp = strcmp($a,$b);
+				elseif(is_numeric($a))
+					$cmp = $a - $b;
+				return (strcmp($order,"ASC")==0) ? $cmp : -$cmp;
+			});
+	}
+	
 	/**
 	  * @method sort_array
 	  * @return boolean , true if success, false if something failed
 	  * @param myarray array() to sort
 	  * @param keytosort --> key for the children array!!!
+	  * @param order string, ASC or DESC
 	  */
-	function sort_array(&$myarray, $keytosort, $order)
+	function sort_multi_array(&$myarray, $keytosort, $order)
 	{
-		return usort($myarray, function ($a, $b) use ($keytosort, $order) {
-				
-				$cmp = strcmp($a[$keytosort],$b[$keytosort]);
+		return uasort($myarray, function ($a, $b) use ($keytosort, $order) {
+				if(is_string($a[$keytosort]))
+					$cmp = strcmp($a[$keytosort],$b[$keytosort]);
+				elseif(is_numeric($a[$keytosort]))
+					$cmp = $a[$keytosort] - $b[$keytosort];
+					#$cmp = ($a[$keytosort] > $b[$keytosort]) ? 1 : (($a[$keytosort] < $b[$keytosort]) ? -1 : 0);
 				return (strcmp($order,"ASC")==0) ? $cmp : -$cmp;
 			});
 	}
 	
-	function create_mono_array($content, $delimiter, $bRE = false, $names = array(), $buildstats = false, &$grouparray = null)
+	function create_mono_array($content, $delimiter, $bRE = false, $names = array(), $buildstats = false, $orderstats = false, &$grouparray = null)
 	{
 		$result = null;
 		$phFound = false;
@@ -111,6 +130,10 @@
 							}
 						}
 					}
+					if($orderstats)
+					{
+						sort_mono_array($grouparray, $orderstats);
+					}
 				}
 			}
 			
@@ -172,6 +195,7 @@
 						$struct_def['key']['bRE'],
 						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array(),
 						(isset($struct_def['buildstats']) && $struct_def['buildstats']),
+						(isset($struct_def['orderstats']) && $struct_def['orderstats']),
 						$grouparray
 					);
 
@@ -204,7 +228,7 @@
 			// WARNING: sorting associative arrays loose keys definition in favor of integer/long
 			foreach($sort as $s)
 			{
-				sort_array($result, $s['key'], $s['order']);
+				sort_multi_array($result, $s['key'], $s['order']);
 			}
 		}
 		
@@ -304,7 +328,7 @@
 											'sort' => array(
 													'f1' => array(
 														'key'=>'n_ingredienti',
-														'order'=>'ASC'
+														'order'=>'DESC'
 														),
 												),
 										),
@@ -314,6 +338,7 @@
 											'names' => array('n_ingredienti', 'ingredient@'),
 										),
 										'buildstats' => true,
+										'orderstats' => true,
 									))
 									);
 	}
@@ -322,12 +347,14 @@
 	{
 		$time_start = microtime_float();
 		
-		file_summary("e_many_teams.in");
-
 		# file_summary("a_example");
+		# file_summary("b_little_bit_of_everything.in");
+		# file_summary("c_little_bit_of_everything.in");
+		file_summary("e_many_teams.in");
 		
 		$time_end = microtime_float();
 		$time = $time_end - $time_start;
+		l("Elapsed time: $time");
 	}
 	
 	main();
