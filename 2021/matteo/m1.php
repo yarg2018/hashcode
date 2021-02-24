@@ -8,6 +8,15 @@
 	  * (C) 2021 by Roberto <>
 	  */
 	 
+	/**
+	  * Simple function to replicate PHP 5 behaviour
+	  */
+	function microtime_float()
+	{
+		list($usec, $sec) = explode(" ", microtime());
+		return ((float)$usec + (float)$sec);
+	}	 
+	 
 	 
 	/**
 	  * @method sort_array
@@ -24,7 +33,7 @@
 			});
 	}
 	
-	function create_mono_array($content, $delimiter, $bRE = false, $names = array())
+	function create_mono_array($content, $delimiter, $bRE = false, $names = array(), $buildstats = false, &$grouparray = null)
 	{
 		$result = null;
 		$phFound = false;
@@ -38,7 +47,7 @@
 		{
 			$counter = 0;
 			$assarray = array();
-		
+			$phPosition = 0;
 			// the names array could contain special placeholder like @
 			// PAY ATTENTION -- POOR PROGRAMMING PRACTICE: if a placeholder like this is specified, the other elements in increasing index order will be ignored
 			foreach($names as $n)
@@ -61,7 +70,9 @@
 				{
 					if(preg_match('/\@/',$names[$nc]))
 					{
+						$phPosition = $nc;
 						$phString = $names[$nc];
+						// trim the array from the first placeholder position to the end
 						array_slice($names,0,$nc-1);
 						for($j = $nc; $j<count($result); $j++)
 						{
@@ -76,6 +87,33 @@
 			{
 				$assarray[$names[$i]] = $result[$i];
 			}
+			
+			if($phFound && $buildstats)
+			{
+				$tmparray = array_count_values(
+					array_slice($assarray, $phPosition)
+				);
+				if(is_array($tmparray) && count($tmparray)>0)
+				{
+					if(!is_array($grouparray))
+						$grouparray = $tmparray;
+					else
+					{
+						foreach($tmparray as $tak => $tav)
+						{
+							if(in_array($tak,array_keys($grouparray)))
+							{
+								$grouparray[$tak]+=$tav;
+							}
+							else
+							{
+								$grouparray[$tak]=$tav;
+							}
+						}
+					}
+				}
+			}
+			
 			$result = $assarray;
 		}
 		return $result;
@@ -121,6 +159,7 @@
 		
 		// build main associative array structure using keys
 		//$debug = 0;
+		$grouparray = (isset($struct_def['buildstats']) && $struct_def['buildstats']) ? array() : null; // the array that will contain the entire set of child for summary
 		$autokey = ($struct_def['key']['parent'])==null ? true : false;
 		$_key = 0;
 		foreach($basearray as $ba)
@@ -131,7 +170,9 @@
 						$ba,
 						$struct_def['key']['delimiter'],
 						$struct_def['key']['bRE'],
-						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array()
+						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array(),
+						(isset($struct_def['buildstats']) && $struct_def['buildstats']),
+						$grouparray
 					);
 
 			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
@@ -148,7 +189,7 @@
 			}
 			else
 			{
-				print_r($result);
+				l($result);
 				l("ERROR: Key [$key] already exists");
 				die("FAILURE");
 			}
@@ -167,6 +208,8 @@
 			}
 		}
 		
+		$result['_grouparray'] = $grouparray;
+		
 		return $result;
 	}
 	
@@ -179,22 +222,46 @@
 		return [$first_line, $content];
 	}
 	
-	function group_entries($custom_array)
+	function group_entries($custom_array, $criteria)
 	{
 		/* result, associative array
-		 * key => occurrence
-		 * value => count of the occurrencies into the given dataset
+		 * @param $custom_array array, associative array to analyze
+		 * @param $criteria array, criteria for building groups
+					criteria = array(
+						'parent' => criteria,
+						'child' => criteria,
+						)
+						
+						 [99998] => Array
+        (
+            [n_ingredienti] => 9
+            [ingredient0] => sc
+            [ingredient1] => ad
+            [ingredient2] => mc
+            [ingredient3] => gb
+            [ingredient4] => wc
+            [ingredient5] => hd
+            [ingredient6] => l
+            [ingredient7] => vd
+            [ingredient8] => ud
+            [parentkey] => pizza99783
 		 */
 		$result = array();
-		foreach($custom_array as $item)
+		foreach($custom_array as $parent => $children)
 		{
-			if(!in_array($item, $result))
+			foreach($children as $childk => $childv)
 			{
-				$result[$item] = 0;
-			}
-			else
-			{
-				$result[$item]++;
+				foreach($criteria as $ck => $cv)
+				{
+					if(preg_match('/'.$cv . '/', $childv))
+					{
+						
+					}
+					if(!in_array($childk, $result))
+						$result[$childk]=1;
+					else
+						$result[$childk]++;
+				}
 			}
 		}
 		return $result;
@@ -246,14 +313,21 @@
 											'bRE' => true,
 											'names' => array('n_ingredienti', 'ingredient@'),
 										),
+										'buildstats' => true,
 									))
 									);
 	}
 	
 	function main()
 	{
+		$time_start = microtime_float();
+		
 		file_summary("e_many_teams.in");
+
 		# file_summary("a_example");
+		
+		$time_end = microtime_float();
+		$time = $time_end - $time_start;
 	}
 	
 	main();
