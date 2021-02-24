@@ -7,7 +7,23 @@
 	  * (C) 2021 by Andrea <>
 	  * (C) 2021 by Roberto <>
 	  */
-	  
+	 
+	 
+	/**
+	  * @method sort_array
+	  * @return boolean , true if success, false if something failed
+	  * @param myarray array() to sort
+	  * @param keytosort --> key for the children array!!!
+	  */
+	function sort_array(&$myarray, $keytosort, $order)
+	{
+		return usort($myarray, function ($a, $b) use ($keytosort, $order) {
+				
+				$cmp = strcmp($a[$keytosort],$b[$keytosort]);
+				return (strcmp($order,"ASC")==0) ? $cmp : -$cmp;
+			});
+	}
+	
 	function create_mono_array($content, $delimiter, $bRE = false, $names = array())
 	{
 		$result = null;
@@ -67,6 +83,7 @@
 	
 	/*
 	 * @method create_multi_array()
+	 * @return associative array coherent to the structure passed
 	 * @param $content, array of string
 	 * @param $struct_def, associative array that defines the rules to build the multidimensional array
 	 *        it might be something like
@@ -79,6 +96,7 @@
 									'parent' => 0|null,				// the element that will become the parent or null for automatic - long
 									'prefix' => string|null      // default to null, if parent null, autokey generation is ON and you could specify a prefix
 									'children' => array()|null,	// an array specifing the position of the children on the same line of the parent [???]
+									'order' => 'ASC|DESC'|null  // basic sorting support
 								),
 								'value' => array(
 									'delimiter' => string,
@@ -87,8 +105,12 @@
 									'rskip' => integer|null,		// number of elements to skip backward or null if nothing must be skipped
 									'parent' => 0,				// the element that will become the parent
 									'children' => array()|null,	// an array specifing the position of the children on the same line of the parent [???]
-									'names' => array()|null     // respecting the position, you could name each elements to have an associative array (like a object) instead of a simple array
+									'names' => array()|null,    // respecting the position, you could name each elements to have an associative array (like a object) instead of a simple array
 																// if one of the names contains @ an increasing integer/long will replace it
+									'sort' => array(            // basic sorting support
+														key => integer|string
+														order => 'ASC|DESC'
+											),														
 								),
 							);
 	 */
@@ -112,6 +134,7 @@
 					);
 			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
 			$key = isset($struct_def['key']['prefix']) ? $struct_def['key']['prefix'] . $key : $key;
+			
 			if(!in_array($key, array_keys($result)))
 			{
 				$result[$key] = ($autokey) ? $mono : array_splice($mono, $struct_def['key']['parent']+1);
@@ -124,6 +147,19 @@
 			}
 			if(isset($debug) && $debug>=10) break;
 		}
+
+		
+		$sort = isset($struct_def['key']['sort']) ? $struct_def['key']['sort'] : null;
+		
+		if(!is_null($sort))
+		{
+			// WARNING: sorting associative arrays loose keys definition in favor of integer/long
+			foreach($sort as $s)
+			{
+				sort_array($result, $s['key'], $s['order']);
+			}
+		}
+		
 		return $result;
 	}
 	
@@ -189,12 +225,18 @@
 											'delimiter' => '\s',
 											'bRE' => true,
 											'parent' => null, //definisco la chiave automaticamente (progressivo, long)
-											//'prefix' => "pizza"
+											'prefix' => "pizza",
+											'sort' => array(
+													'f1' => array(
+														'key'=>'n_ingredienti',
+														'order'=>'DESC'
+														),
+												),
 										),
 										'value' => array(
 											'delimiter' => '\s',
 											'bRE' => true,
-											//'names' => array('n_ingredienti', 'ingredient@'),
+											'names' => array('n_ingredienti', 'ingredient@'),
 										),
 									))
 									);
@@ -202,8 +244,8 @@
 	
 	function main()
 	{
-		file_summary("e_many_teams.in");
-		# file_summary("a_example");
+		# file_summary("e_many_teams.in");
+		file_summary("a_example");
 	}
 	
 	main();
