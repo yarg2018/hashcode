@@ -94,6 +94,7 @@
 									'skip' => integer|null,		// number of elements to skip forward or null if nothing must be skipped
 									'rskip' => integer|null,		// number of elements to skip backward or null if nothing must be skipped
 									'parent' => 0|null,				// the element that will become the parent or null for automatic - long
+									'redundantkey' => true,      // store key as an attribute inside the children array
 									'prefix' => string|null      // default to null, if parent null, autokey generation is ON and you could specify a prefix
 									'children' => array()|null,	// an array specifing the position of the children on the same line of the parent [???]
 									'order' => 'ASC|DESC'|null  // basic sorting support
@@ -132,8 +133,14 @@
 						$struct_def['key']['bRE'],
 						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array()
 					);
+
 			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
 			$key = isset($struct_def['key']['prefix']) ? $struct_def['key']['prefix'] . $key : $key;
+			
+			if(isset($struct_def['key']['redundantkey']) && $struct_def['key']['redundantkey'])
+			{
+				$mono['parentkey'] = $key;
+			}
 			
 			if(!in_array($key, array_keys($result)))
 			{
@@ -226,10 +233,11 @@
 											'bRE' => true,
 											'parent' => null, //definisco la chiave automaticamente (progressivo, long)
 											'prefix' => "pizza",
+											'redundantkey' => true,
 											'sort' => array(
 													'f1' => array(
 														'key'=>'n_ingredienti',
-														'order'=>'DESC'
+														'order'=>'ASC'
 														),
 												),
 										),
@@ -244,8 +252,8 @@
 	
 	function main()
 	{
-		# file_summary("e_many_teams.in");
-		file_summary("a_example");
+		file_summary("e_many_teams.in");
+		# file_summary("a_example");
 	}
 	
 	main();
