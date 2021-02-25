@@ -8,6 +8,9 @@
 	  * (C) 2021 by Roberto <>
 	  */
 	 
+	$M1_DISABLE_DEBUGOUTPUT = false;
+
+	 
 	/**
 	  * Simple function to replicate PHP 5 behaviour
 	  */
@@ -293,6 +296,8 @@
 	
 	function l($element)
 	{
+		global $M1_DISABLE_DEBUGOUTPUT;
+		if($M1_DISABLE_DEBUGOUTPUT) return;
 		if(!is_array($element))
 			print("[*] $element\n");
 		else
@@ -352,6 +357,19 @@
 	
 	function main()
 	{
+		global $M1_DISABLE_DEBUGOUTPUT;
+		
+		$shortopts = "s";
+		$longopts = array(
+			'silent',
+			);
+		$options = getopt($shortopts, $longopts);
+		
+		if(isset($options['s']))
+		{
+			$M1_DISABLE_DEBUGOUTPUT=true;
+		}
+		
 		$time_start = microtime_float();
 		
 		# file_summary("a_example");
