@@ -228,7 +228,6 @@
 		
 		if(!is_null($sort))
 		{
-			// WARNING: sorting associative arrays loose keys definition in favor of integer/long
 			foreach($sort as $s)
 			{
 				sort_multi_array($result, $s['key'], $s['order']);
@@ -307,7 +306,7 @@
 		}
 	}
 	
-	function build_supermegaarray($content, $key_prefix, $value_structure)
+	function build_supermegaarray($content, $key_structure, $value_structure)
 	{	
 		/*if(!is_null($costraints))
 		{
@@ -331,29 +330,13 @@
 		
 		l("Content line (first line excluded) has " . count($content) . " elements");
 		
-		l("First 4 lines for debug purpose");
-		l(
-			array(
-				$content[0],
-				$content[1],
-				$content[2],
-				$content[3]
-			)
-		);
-		
 		return create_multi_array(
 				$content, 
 				array(
-					'key' => array(
-						'delimiter' => '\s',
-						'bRE' => true,
-						'parent' => null, //definisco la chiave automaticamente (progressivo, long)
-						'prefix' => $key_prefix,
-						'redundantkey' => true,
-						),
+					'key' => $key_structure,
 					'value' => $value_structure,
-					'buildstats' => false,
-					'orderstats' => false,
+					'buildstats' => true,
+					'orderstats' => true,
 				)
 			);
 	}
@@ -377,12 +360,15 @@
 		
 		# file_summary("a.txt");
 		# file_summary("e_many_teams.in");
+		
+		$fname = "c.txt";
+		
 		$costraints = array(
 			array('ia_idx'=>2),
 			array('ia_idx'=>3),
 			);
 			
-		list($fl, $content) = parse_input_file("a.txt");
+		list($fl, $content) = parse_input_file($fname);
 		$intro_array = create_mono_array($fl, '\s', true);
 		l("First line has " . count($intro_array) . " elements");
 		
@@ -394,11 +380,24 @@
 		
 		$cars = $intro_array[3];
 		
-		$score_for_car_reaching_dest_in_time = $intro_array[4];
+		$premio = $intro_array[4];
+		
 		
 		$streets_array = build_supermegaarray(
 							array_slice($content,0,$intro_array[2]),
-							"streets",
+							array(
+								'delimiter' => '\s',
+								'bRE' => true,
+								'parent' => null, //definisco la chiave automaticamente (progressivo, long)
+								'prefix' => "streets",
+								'redundantkey' => true,
+								'sort' => array(
+									'f1' => array(
+										'key'=>'street_length',
+										'order'=>'DESC'
+										),
+									),
+								),
 							array(
 								'delimiter' => '\s',
 								'bRE' => true,
@@ -407,7 +406,13 @@
 						);
 		$cars_array = build_supermegaarray(
 							array_slice($content,$intro_array[2],$intro_array[3]),
-							"cars",
+							array(
+								'delimiter' => '\s',
+								'bRE' => true,
+								'parent' => null, //definisco la chiave automaticamente (progressivo, long)
+								'prefix' => "cars",
+								'redundantkey' => true,
+								),
 							array(
 								'delimiter' => '\s',
 								'bRE' => true,
@@ -425,45 +430,64 @@
 		l("Cars");
 		l($cars_array);
 		
-		
-		sort_multi_array($teams, "people", 'DESC');
-		l("Sorted teams");
-		l($teams);
-		l("Pizze necessarie: $pizze_necessarie");
-		l("Pizze disponibili: $pizze_disponibili");
-		l("No Ordini: $n_ordini");
-		
 		l("Begin");
 		l("");
 		
-		$bNoMorePizzaLeft=false;
-		$strip=array();
-		$lines=array();
-		foreach($teams as $t)
+		$tempo = 0;
+		$result = array();
+		foreach($cars_array as $car)
 		{
-			for($tn = 0; $tn < $t['number']; $tn++)
+			$streets_to_travel=0;
+			foreach($car as $key => $val)
 			{
-				array_push($strip,$t['people']);
-				for($i = 0; $i < $t['people']; $i++)
-				{	
-					if(count($data_array)==1)
-					{
-						$bNoMorePizzaLeft=true;
-						break; //we reached the end of the array | MEMO last item of the supermegaarray is the synthesis of ingredients
-					}
-					$curr_pizza = array_shift($data_array);
-					array_push($strip, preg_replace('/pizza/','',$curr_pizza['parentkey']));
-				}
-				if($bNoMorePizzaLeft)
-					break;
-				array_push($lines,implode(" ",$strip));
-				$strip = array();
+				if(preg_match('/street/', $key))
+					$streets_to_travel++;
 			}
-			if($bNoMorePizzaLeft)
-				break;
+			$streets_to_travel--;
+			for($scount = 0; $scount < $streets_to_travel; $scount++)
+			{
+				$pos = array_search($car["street$scount"], array_column($streets_array, 'street_name'));
+				$skey = null;
+				$pp=0;
+				foreach($streets_array as $streetKey => $streetVal)
+				{
+					if($pp==$pos)
+					{
+						$skey = $streetKey;
+						break;
+					}
+					$pp++;
+				}
+				$curr_street = $streets_array[$skey];
+				if(!array_key_exists($curr_street['intersection_end'], $result))
+					$result[$curr_street['intersection_end']]=array();
+				if(!in_array($curr_street['street_name'],$result[$curr_street['intersection_end']]))
+				{
+					$result[$curr_street['intersection_end']][$curr_street['street_name']] = 1;
+				}
+				$tempo++;
+				$tempo += $curr_street['street_length'];
+			}
 		}
+		
+		l($result);
+		
+		$stringa_output = array();
+		$stringa_output[0] = count($result);
+		foreach($result as $l => $line)
+		{
+			array_push($stringa_output, $l);
+			array_push($stringa_output, count($line));
+			foreach($line as $line_street => $line_time)
+			{
+				array_push($stringa_output, $line_street." ".$line_time);
+			}
+		}
+		file_put_contents($fname.".out", join("\n", $stringa_output));
 		l("End");
 		l("");
+		
+		/*
 		$output = implode("\n", $lines);
 		//$output = preg_replace('/^\s+/','',$output);
 		$no_served_teams = count(preg_split('/\n/', $output));
@@ -471,7 +495,7 @@
 		l("Output demo");
 		print($no_served_teams."\n");
 		print($output."\n");
-		
+		*/
 		$time_end = microtime_float();
 		$time = $time_end - $time_start;
 		l("Elapsed time: $time");
