@@ -8,6 +8,9 @@
 	  * (C) 2021 by Roberto <>
 	  */
 	 
+	$M1_DISABLE_DEBUGOUTPUT = false;
+
+	 
 	/**
 	  * Simple function to replicate PHP 5 behaviour
 	  */
@@ -293,6 +296,8 @@
 	
 	function l($element)
 	{
+		global $M1_DISABLE_DEBUGOUTPUT;
+		if($M1_DISABLE_DEBUGOUTPUT) return;
 		if(!is_array($element))
 			print("[*] $element\n");
 		else
@@ -302,10 +307,12 @@
 		}
 	}
 	
-	function file_summary($filename)
+	function build_supermegaarray($filename)
 	{
 		list($fl, $content) = parse_input_file($filename);
-		l("First line has " . count(create_mono_array($fl, '\s',true)) . " elements");
+		$intro_array = create_mono_array($fl, '\s', true);
+		l("First line has " . count($intro_array) . " elements");
+		
 		l("Content line (first line excluded) has " . count($content) . " elements");
 		
 		l("First 4 lines for debug purpose");
@@ -318,39 +325,127 @@
 			)
 		);
 		
-		print_r(create_multi_array($content, array(
-										'key' => array(
-											'delimiter' => '\s',
-											'bRE' => true,
-											'parent' => null, //definisco la chiave automaticamente (progressivo, long)
-											'prefix' => "pizza",
-											'redundantkey' => true,
-											'sort' => array(
-													'f1' => array(
-														'key'=>'n_ingredienti',
-														'order'=>'DESC'
-														),
-												),
-										),
-										'value' => array(
-											'delimiter' => '\s',
-											'bRE' => true,
-											'names' => array('n_ingredienti', 'ingredient@'),
-										),
-										'buildstats' => true,
-										'orderstats' => true,
-									))
-									);
+		return array(
+			$intro_array, 
+			create_multi_array(
+				$content, 
+				array(
+					'key' => array(
+						'delimiter' => '\s',
+						'bRE' => true,
+						'parent' => null, //definisco la chiave automaticamente (progressivo, long)
+						'prefix' => "pizza",
+						'redundantkey' => true,
+						'sort' => array(
+								'f1' => array(
+									'key'=>'n_ingredienti',
+									'order'=>'DESC'
+									),
+							),
+					),
+					'value' => array(
+						'delimiter' => '\s',
+						'bRE' => true,
+						'names' => array('n_ingredienti', 'ingredient@'),
+					),
+					'buildstats' => true,
+					'orderstats' => true,
+				)
+			)
+		);
 	}
 	
 	function main()
 	{
+		global $M1_DISABLE_DEBUGOUTPUT;
+		
+		$shortopts = "s";
+		$longopts = array(
+			'silent',
+			);
+		$options = getopt($shortopts, $longopts);
+		
+		if(isset($options['s']))
+		{
+			$M1_DISABLE_DEBUGOUTPUT=true;
+		}
+		
 		$time_start = microtime_float();
 		
 		# file_summary("a_example");
-		# file_summary("b_little_bit_of_everything.in");
-		# file_summary("c_little_bit_of_everything.in");
-		file_summary("e_many_teams.in");
+		# file_summary("e_many_teams.in");
+		list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("b_little_bit_of_everything.in");
+		
+		l($b_little_bit_of_everything);
+		
+		$pizze_disponibili = $intro_array[0];
+		
+		$rawteams = array_slice($intro_array,1);
+		l($rawteams);
+		
+		$teams = array();
+		$peopleCount = 2;  //can't be less than two
+		$n_ordini = 0;
+		$pizze_necessarie = 0;
+		
+		foreach($rawteams as $rt)
+		{
+			array_push(
+				$teams,
+				array(
+					'people' => $peopleCount++,
+					'number' => $rt,
+					)
+				);
+			$n_ordini += $rt;
+			$pizze_necessarie += ($peopleCount * $rt);
+		}
+		
+		sort_multi_array($teams, "people", 'DESC');
+		l("Sorted teams");
+		l($teams);
+		l("Pizze necessarie: $pizze_necessarie");
+		l("Pizze disponibili: $pizze_disponibili");
+		l("No Ordini: $n_ordini");
+		
+		l("Begin");
+		l("");
+		
+		$bNoMorePizzaLeft=false;
+		$strip=array();
+		$lines=array();
+		foreach($teams as $t)
+		{
+			for($tn = 0; $tn < $t['number']; $tn++)
+			{
+				array_push($strip,$t['people']);
+				for($i = 0; $i < $t['people']; $i++)
+				{	
+					if(count($b_little_bit_of_everything)==1)
+					{
+						$bNoMorePizzaLeft=true;
+						break; //we reached the end of the array | MEMO last item of the supermegaarray is the synthesis of ingredients
+					}
+					$curr_pizza = array_shift($b_little_bit_of_everything);
+					array_push($strip, preg_replace('/pizza/','',$curr_pizza['parentkey']));
+				}
+				if($bNoMorePizzaLeft)
+					break;
+				array_push($lines,implode(" ",$strip));
+				$strip = array();
+			}
+			if($bNoMorePizzaLeft)
+				break;
+		}
+		l("End");
+		l("");
+		$output = implode("\n", $lines);
+		//$output = preg_replace('/^\s+/','',$output);
+		$no_served_teams = count(preg_split('/\n/', $output));
+		l("Number of output lines: " . $no_served_teams);
+		l("Output demo");
+		print($no_served_teams."\n");
+		print($output."\n");
 		
 		$time_end = microtime_float();
 		$time = $time_end - $time_start;
