@@ -375,28 +375,12 @@
 			);
 	}
 	
-	function main()
-	{
-		global $M1_DISABLE_DEBUGOUTPUT;
-		
-		$shortopts = "s";
-		$longopts = array(
-			'silent',
-			);
-		$options = getopt($shortopts, $longopts);
-		
-		if(isset($options['s']))
-		{
-			$M1_DISABLE_DEBUGOUTPUT=true;
-		}
-		
+	
+	
+	function elaborate_single_file($fname)
+	{	
 		$time_start = microtime_float();
-		
-		# file_summary("a.txt");
-		# file_summary("e_many_teams.in");
-		
-		$fname = "d.txt";
-		
+				
 		$costraints = array(
 			array('ia_idx'=>2),
 			array('ia_idx'=>3),
@@ -486,10 +470,10 @@
 		/*
 		l("Streets");
 		l($streets_array);
-		*/
+		
 		l("Cars");
 		l($cars_array);
-		
+		*/
 		
 		l("Begin");
 		l("");
@@ -551,6 +535,30 @@
 		$time_end = microtime_float();
 		$time = $time_end - $time_start;
 		l("Elapsed time: $time");
+	}
+	
+	function main()
+	{
+		global $M1_DISABLE_DEBUGOUTPUT;
+		
+		$shortopts = "s";
+		$longopts = array(
+			'silent',
+			);
+		$options = getopt($shortopts, $longopts);
+		
+		if(isset($options['s']))
+		{
+			$M1_DISABLE_DEBUGOUTPUT=true;
+		}
+		
+		$infiles = array('a','b','c','d','e','f');
+		
+		foreach($infiles as $fname)
+		{
+			l("Processing file: $fname.txt");
+			elaborate_single_file($fname . ".txt");
+		}
 	}
 	
 	main();
