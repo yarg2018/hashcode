@@ -55,8 +55,8 @@
 			});
 	}
 	
-	function create_mono_array($content, $delimiter, $bRE = false, $names = array(), $buildstats = false, $orderstats = false, &$grouparray = null)
-	{
+	function create_mono_array($content, $delimiter, $bRE = false, $names = array(), $buildstats = false, $orderstats = false, &$grouparray = null, $enrichment = null)
+	{		
 		$result = null;
 		$phFound = false;
 		
@@ -105,9 +105,25 @@
 					}
 				}
 			}
+			
+			$mustEnrich = (isset($enrichment) && is_callable($enrichment['function']) && !is_null($enrichment));
+			
 			for($i=0; $i<count($result); $i++)
 			{
-				$assarray[$names[$i]] = $result[$i];
+				if($mustEnrich && 
+					preg_match('/^'.preg_replace('/\@/', '', $phString).'/', $names[$i]))
+				{
+					$assarray[$names[$i]] = array();
+					$assarray[$names[$i]]['base'] = $result[$i];
+					$assarray[$names[$i]][$enrichment['keyname']] = $enrichment['function'](
+							$result[$i],
+							$enrichment['arraytosearch']
+							);
+				}
+				else
+				{
+					$assarray[$names[$i]] = $result[$i];
+				}
 			}
 			
 			if($phFound && $buildstats)
@@ -135,6 +151,7 @@
 					}
 					if($orderstats)
 					{
+						l("Ordering stats");
 						sort_mono_array($grouparray, $orderstats);
 					}
 				}
@@ -188,29 +205,45 @@
 		$grouparray = (isset($struct_def['buildstats']) && $struct_def['buildstats']) ? array() : null; // the array that will contain the entire set of child for summary
 		$autokey = ($struct_def['key']['parent'])==null ? true : false;
 		$_key = 0;
+		
+		$names = (isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array();
+		$build_stats = (isset($struct_def['buildstats']) && $struct_def['buildstats']);
+		$order_stats = (isset($struct_def['orderstats']) && $struct_def['orderstats']);
+		$enrich = (isset($struct_def['value']['enrich']) && is_callable($struct_def['value']['enrich']['function']))?$struct_def['value']['enrich']:null;
+		
+		$redundant_key = isset($struct_def['key']['redundantkey']) && $struct_def['key']['redundantkey'];
+		
+		$progress = 0;
+		$progress_max = count($basearray)-1;
 		foreach($basearray as $ba)
 		{
+			print("[".round($progress++/$progress_max*100,0)."%]\r");
 			if(isset($debug))
 				$debug++;
 			$mono = create_mono_array(
 						$ba,
 						$struct_def['key']['delimiter'],
 						$struct_def['key']['bRE'],
-						(isset($struct_def['value']['names']) && is_array($struct_def['value']['names'])) ? $struct_def['value']['names'] : array(),
-						(isset($struct_def['buildstats']) && $struct_def['buildstats']),
-						(isset($struct_def['orderstats']) && $struct_def['orderstats']),
-						$grouparray
+						$names,
+						$build_stats,
+						$order_stats,
+						$grouparray,
+						$enrich,
 					);
-
-			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
-			$key = isset($struct_def['key']['prefix']) ? $struct_def['key']['prefix'] . $key : $key;
 			
-			if(isset($struct_def['key']['redundantkey']) && $struct_def['key']['redundantkey'])
+			$key = ($autokey) ? $_key++ : $mono[$struct_def['key']['parent']];
+			$key = isset($struct_def['key']['prefix']) ? $struct_def['key']['prefix'] . $key : $key;		
+			
+			if($redundant_key)
 			{
 				$mono['parentkey'] = $key;
 			}
 			
-			if(!in_array($key, array_keys($result)))
+			if(!isset($result[$key]))
+				$result[$key] = null;
+			$result[$key] = ($autokey) ? $mono : array_splice($mono, $struct_def['key']['parent']+1);
+			
+			/*if(!in_array($key, array_keys($result)))
 			{
 				$result[$key] = ($autokey) ? $mono : array_splice($mono, $struct_def['key']['parent']+1);
 			}
@@ -219,7 +252,7 @@
 				l($result);
 				l("ERROR: Key [$key] already exists");
 				die("FAILURE");
-			}
+			}*/
 			if(isset($debug) && $debug>=10) break;
 		}
 
@@ -228,6 +261,7 @@
 		
 		if(!is_null($sort))
 		{
+			l("Sorting multi array");
 			foreach($sort as $s)
 			{
 				sort_multi_array($result, $s['key'], $s['order']);
@@ -328,15 +362,15 @@
 			}
 		}*/
 		
-		l("Content line (first line excluded) has " . count($content) . " elements");
+		l("Content line has " . count($content) . " elements");
 		
 		return create_multi_array(
 				$content, 
 				array(
 					'key' => $key_structure,
 					'value' => $value_structure,
-					'buildstats' => true,
-					'orderstats' => true,
+					'buildstats' => false,
+					'orderstats' => false,
 				)
 			);
 	}
@@ -361,7 +395,7 @@
 		# file_summary("a.txt");
 		# file_summary("e_many_teams.in");
 		
-		$fname = "c.txt";
+		$fname = "d.txt";
 		
 		$costraints = array(
 			array('ia_idx'=>2),
@@ -382,7 +416,7 @@
 		
 		$premio = $intro_array[4];
 		
-		
+		l("Building streets array");
 		$streets_array = build_supermegaarray(
 							array_slice($content,0,$intro_array[2]),
 							array(
@@ -391,12 +425,12 @@
 								'parent' => null, //definisco la chiave automaticamente (progressivo, long)
 								'prefix' => "streets",
 								'redundantkey' => true,
-								'sort' => array(
+								/*'sort' => array(
 									'f1' => array(
 										'key'=>'street_length',
 										'order'=>'DESC'
 										),
-									),
+									),*/
 								),
 							array(
 								'delimiter' => '\s',
@@ -404,6 +438,11 @@
 								'names' => array('intersection_start', 'intersection_end', 'street_name', 'street_length'),
 							)
 						);
+		
+		l("Building cars array");
+		$array_to_search = array_flip(
+			array_column($streets_array, 'street_name', 'parentkey')
+		);
 		$cars_array = build_supermegaarray(
 							array_slice($content,$intro_array[2],$intro_array[3]),
 							array(
@@ -417,24 +456,49 @@
 								'delimiter' => '\s',
 								'bRE' => true,
 								'names' => array('no_streets_to_travel', 'street@'),
+								'enrich' => array(
+									'keyname' => 'street_dtl',
+									//'keytosearch' => 'street@',
+									'arraytosearch' => $array_to_search,
+									'function' => function($street_name, $sarray)
+													{
+														return $sarray[$street_name];
+													}
+									/*'arraytosearch' => &$streets_array,
+									'function' => function($street_name, $sarray){
+										foreach($sarray as $street)
+										{
+											if($street['street_name']===$street_name)
+											{
+												return $street;
+											}
+										}
+										},*/
+									),
 							)		
 						);
+						
 		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("b.txt");
 		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("c.txt");
 		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("d.txt");
 		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("e.txt");
 		
+		/*
 		l("Streets");
 		l($streets_array);
-		
+		*/
 		l("Cars");
 		l($cars_array);
+		
 		
 		l("Begin");
 		l("");
 		
 		$tempo = 0;
 		$result = array();
+		
+		array_pop($cars_array);
+		
 		foreach($cars_array as $car)
 		{
 			$streets_to_travel=0;
@@ -446,19 +510,7 @@
 			$streets_to_travel--;
 			for($scount = 0; $scount < $streets_to_travel; $scount++)
 			{
-				$pos = array_search($car["street$scount"], array_column($streets_array, 'street_name'));
-				$skey = null;
-				$pp=0;
-				foreach($streets_array as $streetKey => $streetVal)
-				{
-					if($pp==$pos)
-					{
-						$skey = $streetKey;
-						break;
-					}
-					$pp++;
-				}
-				$curr_street = $streets_array[$skey];
+				$curr_street = $streets_array[$car["street$scount"]['street_dtl']];
 				if(!array_key_exists($curr_street['intersection_end'], $result))
 					$result[$curr_street['intersection_end']]=array();
 				if(!in_array($curr_street['street_name'],$result[$curr_street['intersection_end']]))
@@ -470,7 +522,7 @@
 			}
 		}
 		
-		l($result);
+		l("Writing data to file");
 		
 		$stringa_output = array();
 		$stringa_output[0] = count($result);
