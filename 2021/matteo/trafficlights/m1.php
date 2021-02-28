@@ -464,11 +464,6 @@
 							)		
 						);
 						
-		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("b.txt");
-		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("c.txt");
-		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("d.txt");
-		#list($intro_array, $b_little_bit_of_everything) = build_supermegaarray("e.txt");
-		
 		/*
 		l("Streets");
 		l($streets_array);
