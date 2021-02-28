@@ -110,9 +110,11 @@
 			
 			for($i=0; $i<count($result); $i++)
 			{
+				if(strcmp(trim($result[$i]),"")==0)
+					continue;
 				if($mustEnrich && 
 					preg_match('/^'.preg_replace('/\@/', '', $phString).'/', $names[$i]))
-				{
+				{	
 					$assarray[$names[$i]] = array();
 					$assarray[$names[$i]]['base'] = $result[$i];
 					$assarray[$names[$i]][$enrichment['keyname']] = $enrichment['function'](
@@ -481,6 +483,7 @@
 		$tempo = 0;
 		$result = array();
 		
+		//array_pop($streets_array);
 		array_pop($cars_array);
 		
 		foreach($cars_array as $car)
@@ -553,6 +556,7 @@
 		}
 		
 		$infiles = array('a','b','c','d','e','f');
+		//$infiles = array('a');
 		
 		foreach($infiles as $fname)
 		{
