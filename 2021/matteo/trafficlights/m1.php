@@ -481,26 +481,56 @@
 		//array_pop($streets_array);
 		array_pop($cars_array);
 		
+		l("Working on the real problem");
+		
+		/**
+		  * OUTPUT FORMAT
+		  * ROW1 --> number of intersections, INT
+		  * from ROW2
+		  * --> ROW2+1 --> ID of the intersection_end
+		  * --> ROW2+2 --> the number of INCOMING streets covered by the schedule
+		  * --> ROW2+x-lines
+		  * ----> ROW2+x+1 --> street name
+		  * ----> ROW2+x+2 --> for how long each street will have a green light
+		  */
+		
+		// dropping car exceding simulation time
 		foreach($cars_array as $car)
 		{
-			$streets_to_travel=0;
-			foreach($car as $key => $val)
-			{
-				if(preg_match('/street/', $key))
-					$streets_to_travel++;
-			}
-			$streets_to_travel--;
+			$traveltime = 0;
+			
+			$car['total_traveltime'] = 0;
+			
 			for($scount = 0; $scount < $streets_to_travel; $scount++)
 			{
-				$curr_street = $streets_array[$car["street$scount"]['street_dtl']];
-				if(!array_key_exists($curr_street['intersection_end'], $result))
-					$result[$curr_street['intersection_end']]=array();
-				if(!in_array($curr_street['street_name'],$result[$curr_street['intersection_end']]))
+				$car['total_traveltime'] += $car["street$scount"]['street_length'];
+			}
+			if($car['total_traveltime'] > $sim_duration)
+				$car['disabled'] = true;
+		}
+		
+		for($tempo = 0; $tempo < $sim_duration; $tempo++)
+		{
+			foreach($cars_array as $car)
+			{
+				if(isset($car['disabled']) && $car['disabled']==true)
+					continue; // the travel takes too much time for the current simulation
+				for($scount = 0; $scount < $car['no_streets_to_travel']; $scount++)
 				{
-					$result[$curr_street['intersection_end']][$curr_street['street_name']] = 1;
+					$curr_street = $streets_array[$car["street$scount"]['street_dtl']];
+					if(!array_key_exists($curr_street['intersection_end'], $result))
+						$result[$curr_street['intersection_end']]=array();
+					if(!in_array($curr_street['street_name'],$result[$curr_street['intersection_end']]))
+					{
+						$result[$curr_street['intersection_end']][$curr_street['street_name']] = 1;
+					}
+					else
+					{
+						$result[$curr_street['intersection_end']][$curr_street['street_name']]++;
+					}
+					$tempo++;
+					$tempo += $curr_street['street_length'];
 				}
-				$tempo++;
-				$tempo += $curr_street['street_length'];
 			}
 		}
 		
